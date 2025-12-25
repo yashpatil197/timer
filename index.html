@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FocusFlow Pro | Interactive Productivity</title>
+    <title>FocusFlow Pro | Ultimate Productivity</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#6c5ce7">
-    
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
@@ -19,15 +20,25 @@
         <header>
             <div class="logo-area">
                 <h1>FocusFlow <span class="pro-badge">PRO</span></h1>
-                <p>Master your workflow, level up your life.</p>
+                <p>Master your workflow.</p>
             </div>
+            
             <div class="level-container">
                 <div class="level-info">
                     <span id="user-level">Level 1</span>
-                    <span id="xp-details">0 / 100 XP</span>
+                    <div class="streak-wrapper">
+                        <div class="streak-badge" title="Hit daily goal to streak!">
+                            <span id="streak-icon">❄️</span> 
+                            <span id="streak-count">0</span> Streak
+                        </div>
+                    </div>
                 </div>
                 <div class="xp-bar-background">
                     <div id="xp-bar-fill" class="xp-bar-fill" style="width: 0%"></div>
+                </div>
+                <div class="meta-row">
+                    <span id="xp-details">0 / 100 XP</span>
+                    <small class="goal-text">Goal: <span id="mins-today">0</span>/<span id="goal-display">60</span>m</small>
                 </div>
             </div>
         </header>
@@ -49,35 +60,29 @@
 
             <div class="timer-options">
                 <button onclick="setMode('focus')" class="mode-btn active" id="mode-focus">Focus</button>
-                <button onclick="setMode('short')" class="mode-btn" id="mode-short">Short Break</button>
+                <button onclick="setMode('short')" class="mode-btn" id="mode-short">Break</button>
                 <button onclick="openSettings()" class="settings-btn" aria-label="Settings">⚙️</button>
             </div>
 
             <div class="spotify-wrapper">
-    <div class="spotify-header">
-        <label for="playlist-select">🎧 Focus Vibe:</label>
-        <select id="playlist-select" onchange="changeSpotifyPlaylist()">
-            <option value="0vvXsWCC9xrXsKd4FyS8kM">Lofi Beats (Chill)</option>
-            <option value="37i9dQZF1DWWQRwui0ExPn">Lo-Fi Cafe (Cozy)</option>
-            <option value="37i9dQZF1DWWEJlAGA9gs0">Classical Essentials</option>
-            <option value="37i9dQZF1DX4sWSpwq3LiO">Peaceful Piano</option>
-            <option value="69iBWGroXCYzAsl1zwSFm5?si=SeCxfsd_SRSiC2sNI9jziw">Motivational(Hindi)</option>
-            <option value="38mWQAGEylOPPcWfDpB6FO?si=e5bca97677b742fe">Hindi LOfi</option>
-        </select>
-    </div>
-    
-    <iframe 
-        id="spotify-player" 
-        style="border-radius:12px" 
-        src="https://open.spotify.com/embed/playlist/0vvXsWCC9xrXsKd4FyS8kM?utm_source=generator&theme=0" 
-        width="100%" 
-        height="152" 
-        frameBorder="0" 
-        allowfullscreen="" 
-        allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" 
-        loading="lazy">
-    </iframe>
-</div>
+                <div class="spotify-header">
+                    <label>🎧 Focus Vibe:</label>
+                    <select id="playlist-select" onchange="changeSpotifyPlaylist()">
+                        <option value="0vvXsWCC9xrXsKd4FyS8kM">Lofi Beats</option>
+                        <option value="37i9dQZF1DWWQRwui0ExPn">Cozy Lo-Fi</option>
+                        <option value="37i9dQZF1DWWEJlAGA9gs0">Classical Essentials</option>
+                        <option value="37i9dQZF1DX4sWSpwq3LiO">Peaceful Piano</option>
+                        <option value="37i9dQZF1DX8Uebhn9wzrS">White Noise</option>
+                    </select>
+                </div>
+                <iframe 
+                    id="spotify-player" 
+                    src="https://open.spotify.com/embed/playlist/0vvXsWCC9xrXsKd4FyS8kM?utm_source=generator" 
+                    width="100%" height="152" frameBorder="0" 
+                    allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" 
+                    loading="lazy">
+                </iframe>
+            </div>
         </section>
 
         <section class="card tasks-card">
@@ -86,15 +91,24 @@
                 <small class="hint">Drag to reorder</small>
             </div>
             <div class="input-group">
-                <input type="text" id="task-input" placeholder="Add a new task... (Press Enter)">
+                <input type="text" id="task-input" placeholder="Add task...">
                 <button onclick="addTask()" class="add-task-btn">+</button>
             </div>
-            <ul id="task-list">
-                </ul>
+            <ul id="task-list"></ul>
+        </section>
+
+        <section class="card analytics-card">
+            <div class="card-header">
+                <h2>History</h2>
+                <small class="hint">Last 7 Days</small>
+            </div>
+            <div class="chart-box">
+                <canvas id="focusChart"></canvas>
+            </div>
         </section>
         
         <div class="quote-container fade-in">
-            <p id="quote-text">"Loading daily motivation..."</p>
+            <p id="quote-text">"Loading..."</p>
             <small id="quote-author"></small>
         </div>
     </div>
@@ -102,17 +116,22 @@
     <div id="settings-modal" class="modal">
         <div class="modal-content zoom-in">
             <div class="modal-header">
-                <h2>Timer Settings</h2>
+                <h2>Settings</h2>
                 <span class="close" onclick="closeSettings()">&times;</span>
             </div>
             <div class="modal-body">
                 <div class="setting-row">
-                    <label for="custom-focus">Focus Duration (minutes):</label>
+                    <label>Focus Duration (min):</label>
                     <input type="number" id="custom-focus" min="1" max="60">
                 </div>
                 <div class="setting-row">
-                    <label for="custom-break">Break Duration (minutes):</label>
+                    <label>Break Duration (min):</label>
                     <input type="number" id="custom-break" min="1" max="30">
+                </div>
+                <div class="setting-row">
+                    <label>🎯 Daily Goal (min):</label>
+                    <input type="number" id="daily-goal-input" min="10" max="480">
+                    <small style="color:var(--text-muted)">Streak increases only when goal is met.</small>
                 </div>
             </div>
             <button onclick="saveSettings()" class="save-btn">Save Changes</button>
