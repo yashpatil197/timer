@@ -262,3 +262,46 @@ li.completed .check-btn::after { content: '✓'; color: white; font-size: 0.8rem
         margin: 0 auto; /* Center it */
     }
 }
+
+/* --- SPOTIFY PLAYER STYLES --- */
+.spotify-wrapper {
+    margin-top: 25px;
+    padding-top: 20px;
+    border-top: 2px solid var(--bg-main);
+    width: 100%;
+}
+
+.spotify-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.spotify-header label {
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+/* Custom Dropdown Styling */
+#playlist-select {
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 2px solid var(--bg-main);
+    background-color: var(--bg-main);
+    color: var(--text-main);
+    font-family: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.3s;
+}
+
+#playlist-select:focus {
+    border-color: var(--primary);
+}
+
+/* Dark mode adjustment for the iframe background */
+[data-theme="dark"] .spotify-wrapper iframe {
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
