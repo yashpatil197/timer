@@ -1,92 +1,87 @@
-// ===========================
-//  GLOBAL STATE & CONFIG
-// ===========================
+// --- STATE & CONFIG ---
 let timerInterval;
 let isRunning = false;
 let timeLeft;
-let currentMode = 'focus'; // 'focus' or 'short'
+let currentMode = 'focus'; 
 let totalSecondsElapsedInSession = 0;
+let focusChart;
 
-// Load data from LocalStorage or set defaults
-let settings = JSON.parse(localStorage.getItem('focusSettings')) || { focus: 25, break: 5 };
-let stats = JSON.parse(localStorage.getItem('focusStats')) || { sessions: 0, totalXP: 0, level: 1 };
-
-// Audio Objects (ensure assets exist in /assets folder)
-const alarmSound = new Audio('assets/alarm.mp3');
-const rainSound = new Audio('assets/rain.mp3');
-rainSound.loop = true;
-
-// DOM Elements References
-const elements = {
-    minDisplay: document.getElementById('minutes'),
-    secDisplay: document.getElementById('seconds'),
-    startBtn: document.getElementById('start-btn'),
-    stopBtn: document.getElementById('stop-btn'),
-    sessionCount: document.getElementById('session-count'),
-    taskList: document.getElementById('task-list'),
-    taskInput: document.getElementById('task-input'),
-    musicBtn: document.getElementById('music-btn'),
-    themeToggle: document.getElementById('theme-toggle'),
-    settingsModal: document.getElementById('settings-modal'),
-    userLevel: document.getElementById('user-level'),
-    xpDetails: document.getElementById('xp-details'),
-    xpBarFill: document.getElementById('xp-bar-fill'),
-    quoteText: document.getElementById('quote-text'),
-    quoteAuthor: document.getElementById('quote-author')
+// Default Settings
+let settings = JSON.parse(localStorage.getItem('focusSettings')) || { 
+    focus: 25, 
+    break: 5, 
+    dailyGoal: 60 
 };
 
-// ===========================
-//  INITIALIZATION
-// ===========================
-document.addEventListener('DOMContentLoaded', () => {
-    // Initialize UI based on saved state
-    timeLeft = settings.focus * 60;
-    updateTimerDisplay();
-    updateStatsUI();
-    loadTasks();
-    applySavedTheme();
-    fetchQuote(); // API Call
+let stats = JSON.parse(localStorage.getItem('focusStats')) || { sessions: 0, totalXP: 0, level: 1 };
 
-    // Initialize Drag & Drop Library
-    new Sortable(elements.taskList, {
-        animation: 150,
-        ghostClass: 'sortable-ghost',
-        onEnd: saveLocalTasks // Save new order after drag finishes
-    });
+let dailyProgress = JSON.parse(localStorage.getItem('dailyProgress')) || {
+    date: new Date().toISOString().split('T')[0],
+    minutes: 0,
+    goalMet: false
+};
 
-    // Event Listeners
-    elements.taskInput.addEventListener("keypress", (e) => e.key === "Enter" && addTask());
-    elements.themeToggle.addEventListener('click', toggleTheme);
-    window.onclick = (e) => e.target === elements.settingsModal && closeSettings();
-});
-
-
-// ===========================
-//  TIMER CORE LOGIC
-// ===========================
-function updateTimerDisplay() {
-    let m = Math.floor(timeLeft / 60);
-    let s = timeLeft % 60;
-    elements.minDisplay.textContent = m.toString().padStart(2, '0');
-    elements.secDisplay.textContent = s.toString().padStart(2, '0');
-    document.title = `${elements.minDisplay.textContent}:${elements.secDisplay.textContent} | FocusFlow`;
+// Reset progress if it's a new day
+if (dailyProgress.date !== new Date().toISOString().split('T')[0]) {
+    dailyProgress = { date: new Date().toISOString().split('T')[0], minutes: 0, goalMet: false };
+    localStorage.setItem('dailyProgress', JSON.stringify(dailyProgress));
 }
 
+// Audio
+const alarmSound = new Audio('assets/alarm.mp3');
+
+// DOM Elements
+const elements = {
+    min: document.getElementById('minutes'),
+    sec: document.getElementById('seconds'),
+    start: document.getElementById('start-btn'),
+    stop: document.getElementById('stop-btn'),
+    session: document.getElementById('session-count'),
+    taskList: document.getElementById('task-list'),
+    taskInput: document.getElementById('task-input'),
+    themeToggle: document.getElementById('theme-toggle'),
+    modal: document.getElementById('settings-modal'),
+    playlist: document.getElementById('playlist-select'),
+    player: document.getElementById('spotify-player')
+};
+
+// --- INIT ---
+document.addEventListener('DOMContentLoaded', () => {
+    timeLeft = settings.focus * 60;
+    updateDisplay();
+    updateStatsUI();
+    updateProgressUI();
+    renderStreakUI();
+    loadTasks();
+    applyTheme();
+    initChart();
+    fetchQuote();
+
+    // SortableJS Init
+    new Sortable(elements.taskList, { animation: 150, onEnd: saveTasks });
+
+    elements.taskInput.addEventListener("keypress", (e) => e.key === "Enter" && addTask());
+    elements.themeToggle.addEventListener('click', toggleTheme);
+    window.onclick = (e) => e.target === elements.modal && closeSettings();
+});
+
+// --- TIMER LOGIC ---
 function startTimer() {
     if (isRunning) return;
     isRunning = true;
-    toggleTimerControls(true);
-    totalSecondsElapsedInSession = 0; // Reset for this specific session
+    toggleControls(true);
+    totalSecondsElapsedInSession = 0;
 
     timerInterval = setInterval(() => {
         if (timeLeft > 0) {
             timeLeft--;
             totalSecondsElapsedInSession++;
-            updateTimerDisplay();
-            
-            // Gamification: Add XP every 60 seconds ONLY in focus mode
+            updateDisplay();
+
+            // Track Daily Goal (Every 60s)
             if (currentMode === 'focus' && totalSecondsElapsedInSession % 60 === 0) {
-                addXP(10); // 10 XP per minute
+                incrementDailyProgress();
+                addXP(5); // 5 XP per minute
             }
         } else {
             completeSession();
@@ -97,122 +92,186 @@ function startTimer() {
 function stopTimer() {
     clearInterval(timerInterval);
     isRunning = false;
-    toggleTimerControls(false);
+    toggleControls(false);
 }
 
 function resetTimer() {
     stopTimer();
     timeLeft = (currentMode === 'focus' ? settings.focus : settings.break) * 60;
-    updateTimerDisplay();
+    updateDisplay();
 }
 
 function completeSession() {
     stopTimer();
-    alarmSound.play().catch(e => console.log("Audio play failed. User hasn't interacted yet."));
+    alarmSound.play().catch(e => console.log("Audio blocked"));
 
     if (currentMode === 'focus') {
         stats.sessions++;
-        // Bonus XP for finishing a session successfully
-        addXP(50); 
-        saveStats();
+        addXP(50); // Session Bonus
+        logHistory(); // Chart Data
+        
+        // Save & UI
+        localStorage.setItem('focusStats', JSON.stringify(stats));
         updateStatsUI();
-        alert("Focus session complete! Enjoy your break.");
+        
+        alert("Session Complete! Take a break.");
         setMode('short');
     } else {
-        alert("Break over! Time to focus.");
+        alert("Break over! Back to focus.");
         setMode('focus');
     }
 }
 
-function toggleTimerControls(running) {
-    elements.startBtn.classList.toggle('hidden', running);
-    elements.stopBtn.classList.toggle('hidden', !running);
+function updateDisplay() {
+    let m = Math.floor(timeLeft / 60);
+    let s = timeLeft % 60;
+    elements.min.textContent = m.toString().padStart(2, '0');
+    elements.sec.textContent = s.toString().padStart(2, '0');
+    document.title = `${elements.min.textContent}:${elements.sec.textContent} | FocusFlow`;
+}
+
+function toggleControls(running) {
+    elements.start.classList.toggle('hidden', running);
+    elements.stop.classList.toggle('hidden', !running);
 }
 
 function setMode(mode) {
     stopTimer();
     currentMode = mode;
     timeLeft = (mode === 'focus' ? settings.focus : settings.break) * 60;
-    
-    document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
     document.getElementById(`mode-${mode}`).classList.add('active');
-    updateTimerDisplay();
+    updateDisplay();
 }
 
+// --- GAMIFICATION & GOALS ---
+function incrementDailyProgress() {
+    dailyProgress.minutes++;
+    localStorage.setItem('dailyProgress', JSON.stringify(dailyProgress));
+    updateProgressUI();
 
-// ===========================
-//  GAMIFICATION (XP & LEVELS)
-// ===========================
+    if (dailyProgress.minutes >= settings.dailyGoal && !dailyProgress.goalMet) {
+        dailyProgress.goalMet = true;
+        updateStreak();
+        alert("🎯 Daily Goal Reached! Streak +1 🔥");
+    }
+}
+
+function updateProgressUI() {
+    document.getElementById('mins-today').textContent = dailyProgress.minutes;
+    document.getElementById('goal-display').textContent = settings.dailyGoal;
+}
+
 function addXP(amount) {
     stats.totalXP += amount;
-    // Simple Level Formula: Level up every 100 XP
     const newLevel = Math.floor(stats.totalXP / 100) + 1;
-    
-    if (newLevel > stats.level) {
-        stats.level = newLevel;
-        // Optional: Play a "level up" sound here
-        alert(`🎉 Congratulations! You reached Level ${newLevel}!`);
-    }
-    saveStats();
+    if (newLevel > stats.level) stats.level = newLevel;
+    localStorage.setItem('focusStats', JSON.stringify(stats));
     updateStatsUI();
 }
 
 function updateStatsUI() {
-    elements.sessionCount.textContent = stats.sessions;
-    elements.userLevel.textContent = `Level ${stats.level}`;
+    elements.session.textContent = stats.sessions;
+    document.getElementById('user-level').textContent = `Level ${stats.level}`;
+    document.getElementById('xp-details').textContent = `${stats.totalXP % 100} / 100 XP`;
+    document.getElementById('xp-bar-fill').style.width = `${stats.totalXP % 100}%`;
+}
+
+// --- STREAK LOGIC ---
+function updateStreak() {
+    let streak = parseInt(localStorage.getItem('focusStreak')) || 0;
+    let lastDate = localStorage.getItem('lastStreakDate');
+    const today = new Date().toISOString().split('T')[0];
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+
+    if (lastDate === yesterday) streak++;
+    else if (lastDate !== today) streak = 1;
+
+    localStorage.setItem('focusStreak', streak);
+    localStorage.setItem('lastStreakDate', today);
+    renderStreakUI();
+}
+
+function renderStreakUI() {
+    const streak = parseInt(localStorage.getItem('focusStreak')) || 0;
+    document.getElementById('streak-count').textContent = streak;
+    const badge = document.querySelector('.streak-badge');
     
-    const xpTowardsNextLevel = stats.totalXP % 100;
-    elements.xpDetails.textContent = `${xpTowardsNextLevel} / 100 XP`;
-    elements.xpBarFill.style.width = `${xpTowardsNextLevel}%`;
+    if (dailyProgress.goalMet) {
+        document.getElementById('streak-icon').textContent = "🔥";
+        badge.classList.add('active');
+    } else {
+        document.getElementById('streak-icon').textContent = "❄️";
+        badge.classList.remove('active');
+    }
 }
 
-function saveStats() {
-    localStorage.setItem('focusStats', JSON.stringify(stats));
+// --- CHART.JS ---
+function logHistory() {
+    let history = JSON.parse(localStorage.getItem('focusHistory')) || {};
+    const today = new Date().toISOString().split('T')[0];
+    history[today] = (history[today] || 0) + 1;
+    localStorage.setItem('focusHistory', JSON.stringify(history));
+    updateChart(history);
 }
 
+function initChart() {
+    const ctx = document.getElementById('focusChart').getContext('2d');
+    focusChart = new Chart(ctx, {
+        type: 'bar',
+        data: { labels: [], datasets: [{ label: 'Sessions', data: [], backgroundColor: '#6c5ce7', borderRadius: 5 }] },
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }, plugins: { legend: { display: false } } }
+    });
+    const history = JSON.parse(localStorage.getItem('focusHistory')) || {};
+    updateChart(history);
+}
 
-// ===========================
-//  TASK MANAGER (CRUD + Drag)
-// ===========================
+function updateChart(history) {
+    const labels = [];
+    const data = [];
+    for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const dateStr = d.toISOString().split('T')[0];
+        labels.push(d.toLocaleDateString('en-US', { weekday: 'short' }));
+        data.push(history[dateStr] || 0);
+    }
+    focusChart.data.labels = labels;
+    focusChart.data.datasets[0].data = data;
+    focusChart.update();
+}
+
+// --- SPOTIFY ---
+function changeSpotifyPlaylist() {
+    const id = elements.playlist.value;
+    elements.player.src = `https://open.spotify.com/embed/playlist/${id}?utm_source=generator`;
+}
+
+// --- TASKS ---
 function addTask() {
     const text = elements.taskInput.value.trim();
-    if (text === '') return;
-    createTaskElement(text);
-    saveLocalTasks();
+    if (!text) return;
+    createTaskEl(text);
+    saveTasks();
     elements.taskInput.value = '';
 }
 
-function createTaskElement(text, completed = false) {
+function createTaskEl(text, completed = false) {
     const li = document.createElement('li');
     if (completed) li.classList.add('completed');
-
-    li.innerHTML = `
-        <div class="check-btn"></div>
-        <span class="task-text">${text}</span>
-        <button class="delete-btn">🗑️</button>
-    `;
-
-    // Add interactivity to the new elements
-    const checkBtn = li.querySelector('.check-btn');
-    checkBtn.addEventListener('click', (e) => {
-        e.stopPropagation(); // Prevent triggering drag
-        li.classList.toggle('completed');
-        saveLocalTasks();
+    li.innerHTML = `<span>${text}</span> <button class="delete-btn" onclick="this.parentElement.remove(); saveTasks()">×</button>`;
+    li.addEventListener('click', (e) => {
+        if(e.target.tagName !== 'BUTTON') {
+            li.classList.toggle('completed');
+            saveTasks();
+        }
     });
-
-    const deleteBtn = li.querySelector('.delete-btn');
-    deleteBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        li.remove();
-        saveLocalTasks();
-    });
-
     elements.taskList.appendChild(li);
 }
 
-function saveLocalTasks() {
+function saveTasks() {
     const tasks = Array.from(elements.taskList.children).map(li => ({
-        text: li.querySelector('.task-text').textContent,
+        text: li.querySelector('span').textContent,
         completed: li.classList.contains('completed')
     }));
     localStorage.setItem('focusTasks', JSON.stringify(tasks));
@@ -220,104 +279,44 @@ function saveLocalTasks() {
 
 function loadTasks() {
     const tasks = JSON.parse(localStorage.getItem('focusTasks')) || [];
-    tasks.forEach(task => createTaskElement(task.text, task.completed));
+    tasks.forEach(t => createTaskEl(t.text, t.completed));
 }
 
-
-// ===========================
-//  API INTEGRATION (Quotes)
-// ===========================
-async function fetchQuote() {
-    try {
-        // Using a free, reliable quote API
-        const response = await fetch('https://api.quotable.io/random?tags=technology,wisdom');
-        if (!response.ok) throw new Error('API connection failed');
-        const data = await response.json();
-        
-        elements.quoteText.textContent = `"${data.content}"`;
-        elements.quoteAuthor.textContent = `- ${data.author}`;
-    } catch (error) {
-        console.warn("Quote API failed, using fallback:", error);
-        elements.quoteText.textContent = '"Simplicity is the ultimate sophistication."';
-        elements.quoteAuthor.textContent = "- Leonardo da Vinci";
-    }
-}
-
-
-// ===========================
-//  UI / UX & INTERACTION
-// ===========================
-// --- Music ---
-function toggleMusic() {
-    if (rainSound.paused) {
-        rainSound.play().then(() => {
-            elements.musicBtn.classList.add('playing');
-            elements.musicBtn.querySelector('span').textContent = "⏸ Pausing Ambiance";
-        }).catch(e => alert("Please interact with the page first so music can play!"));
-    } else {
-        rainSound.pause();
-        elements.musicBtn.classList.remove('playing');
-        elements.musicBtn.querySelector('span').textContent = "🎧 Play Ambiance";
-    }
-}
-
-// --- Settings Modal ---
+// --- SETTINGS & THEME ---
 function openSettings() {
-    elements.settingsModal.style.display = "flex";
+    elements.modal.style.display = 'flex';
     document.getElementById('custom-focus').value = settings.focus;
     document.getElementById('custom-break').value = settings.break;
+    document.getElementById('daily-goal-input').value = settings.dailyGoal;
 }
-
-function closeSettings() {
-    elements.settingsModal.style.display = "none";
-}
-
+function closeSettings() { elements.modal.style.display = 'none'; }
 function saveSettings() {
-    let newFocus = parseInt(document.getElementById('custom-focus').value);
-    let newBreak = parseInt(document.getElementById('custom-break').value);
-    
-    // Basic validation
-    settings.focus = (newFocus > 0 && newFocus <= 60) ? newFocus : 25;
-    settings.break = (newBreak > 0 && newBreak <= 30) ? newBreak : 5;
-    
+    settings.focus = parseInt(document.getElementById('custom-focus').value) || 25;
+    settings.break = parseInt(document.getElementById('custom-break').value) || 5;
+    settings.dailyGoal = parseInt(document.getElementById('daily-goal-input').value) || 60;
     localStorage.setItem('focusSettings', JSON.stringify(settings));
+    updateProgressUI();
     closeSettings();
     resetTimer();
 }
-
-// --- Dark Mode ---
 function toggleTheme() {
-    const current = document.documentElement.getAttribute('data-theme');
-    const next = current === 'dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', next);
-    localStorage.setItem('focusTheme', next);
-    updateThemeIcon(next);
+    const newTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', newTheme);
+    localStorage.setItem('focusTheme', newTheme);
+}
+function applyTheme() {
+    const theme = localStorage.getItem('focusTheme') || 'light';
+    document.documentElement.setAttribute('data-theme', theme);
 }
 
-function applySavedTheme() {
-    const saved = localStorage.getItem('focusTheme') || 'light';
-    document.documentElement.setAttribute('data-theme', saved);
-    updateThemeIcon(saved);
+// --- API ---
+async function fetchQuote() {
+    try {
+        const res = await fetch('https://api.quotable.io/random?tags=technology,wisdom');
+        const data = await res.json();
+        document.getElementById('quote-text').textContent = `"${data.content}"`;
+        document.getElementById('quote-author').textContent = `- ${data.author}`;
+    } catch (e) {
+        document.getElementById('quote-text').textContent = '"Focus is the key to success."';
+    }
 }
-
-function updateThemeIcon(theme) {
-    elements.themeToggle.textContent = theme === 'dark' ? '☀️' : '🌙';
-}
-
-// ===========================
-//  SPOTIFY INTEGRATION
-// ===========================
-function changeSpotifyPlaylist() {
-    const playlistId = document.getElementById('playlist-select').value;
-    const player = document.getElementById('spotify-player');
-    
-    // Update the iframe source with the new playlist ID
-    player.src = `https://open.spotify.com/embed/playlist/${playlistId}?utm_source=generator&theme=0`;
-    
-    // Optional: Save preference to LocalStorage
-    localStorage.setItem('focusPlaylist', playlistId);
-}
-
-// Load saved playlist on startup (Add this to your DOMContentLoaded logic if you want)
-// You can place this single line inside your existing document.addEventListener('DOMContentLoaded', ...) block:
-// document.getElementById('playlist-select').value = localStorage.getItem('focusPlaylist') || "0vvXsWCC9xrXsKd4FyS8kM";
