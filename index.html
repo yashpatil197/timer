@@ -3,10 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FocusFlow Pro | Ultimate Productivity</title>
+    <title>FocusFlow Pro | Interactive Productivity</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#6c5ce7">
+    
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js" defer></script>
 </head>
 <body>
 
@@ -14,60 +17,83 @@
 
     <div class="container">
         <header>
-            <h1>FocusFlow <span class="pro-badge">PRO</span></h1>
-            <p>Master your workflow.</p>
+            <div class="logo-area">
+                <h1>FocusFlow <span class="pro-badge">PRO</span></h1>
+                <p>Master your workflow, level up your life.</p>
+            </div>
+            <div class="level-container">
+                <div class="level-info">
+                    <span id="user-level">Level 1</span>
+                    <span id="xp-details">0 / 100 XP</span>
+                </div>
+                <div class="xp-bar-background">
+                    <div id="xp-bar-fill" class="xp-bar-fill" style="width: 0%"></div>
+                </div>
+            </div>
         </header>
 
         <div class="stats-bar">
             <span>🔥 Sessions Today: <b id="session-count">0</b></span>
         </div>
 
-        <section class="timer-card">
+        <section class="card timer-card">
             <div class="timer-display">
                 <span id="minutes">25</span>:<span id="seconds">00</span>
             </div>
             
             <div class="timer-controls">
-                <button id="start-btn" onclick="startTimer()">Start</button>
-                <button id="stop-btn" onclick="stopTimer()">Pause</button>
-                <button id="reset-btn" onclick="resetTimer()">Reset</button>
+                <button id="start-btn" class="primary-btn" onclick="startTimer()">Start Focus</button>
+                <button id="stop-btn" class="secondary-btn hidden" onclick="stopTimer()">Pause</button>
+                <button id="reset-btn" class="tertiary-btn" onclick="resetTimer()">Reset</button>
             </div>
 
             <div class="timer-options">
-                <button onclick="setMode(25)" class="mode-btn active" id="mode-focus">Focus</button>
-                <button onclick="setMode(5)" class="mode-btn" id="mode-short">Short Break</button>
-                <button onclick="openSettings()" class="settings-btn">⚙️ Settings</button>
+                <button onclick="setMode('focus')" class="mode-btn active" id="mode-focus">Focus</button>
+                <button onclick="setMode('short')" class="mode-btn" id="mode-short">Short Break</button>
+                <button onclick="openSettings()" class="settings-btn" aria-label="Settings">⚙️</button>
             </div>
 
             <div class="music-controls">
-                <label>🎧 Ambiance:</label>
-                <button onclick="toggleMusic()" id="music-btn">Play Rain 🌧️</button>
+                <button onclick="toggleMusic()" id="music-btn" class="music-btn">
+                    <span>🎧 Play Ambiance</span>
+                </button>
             </div>
         </section>
 
-        <section class="tasks-card">
-            <h2>Priorities</h2>
+        <section class="card tasks-card">
+            <div class="card-header">
+                <h2>Priorities</h2>
+                <small class="hint">Drag to reorder</small>
+            </div>
             <div class="input-group">
-                <input type="text" id="task-input" placeholder="Add a new task...">
-                <button onclick="addTask()">+</button>
+                <input type="text" id="task-input" placeholder="Add a new task... (Press Enter)">
+                <button onclick="addTask()" class="add-task-btn">+</button>
             </div>
             <ul id="task-list">
                 </ul>
-            <p class="hint">💡 Drag tasks to reorder them</p>
         </section>
+        
+        <div class="quote-container fade-in">
+            <p id="quote-text">"Loading daily motivation..."</p>
+            <small id="quote-author"></small>
+        </div>
     </div>
 
     <div id="settings-modal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeSettings()">&times;</span>
-            <h2>Timer Settings</h2>
-            <div class="setting-row">
-                <label>Focus Duration (min):</label>
-                <input type="number" id="custom-focus" value="25">
+        <div class="modal-content zoom-in">
+            <div class="modal-header">
+                <h2>Timer Settings</h2>
+                <span class="close" onclick="closeSettings()">&times;</span>
             </div>
-            <div class="setting-row">
-                <label>Break Duration (min):</label>
-                <input type="number" id="custom-break" value="5">
+            <div class="modal-body">
+                <div class="setting-row">
+                    <label for="custom-focus">Focus Duration (minutes):</label>
+                    <input type="number" id="custom-focus" min="1" max="60">
+                </div>
+                <div class="setting-row">
+                    <label for="custom-break">Break Duration (minutes):</label>
+                    <input type="number" id="custom-break" min="1" max="30">
+                </div>
             </div>
             <button onclick="saveSettings()" class="save-btn">Save Changes</button>
         </div>
