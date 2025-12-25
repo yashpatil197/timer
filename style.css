@@ -38,14 +38,29 @@ body {
     transition: background 0.3s ease, color 0.3s ease;
 }
 
+/* --- UPDATED CONTAINER --- */
 .container {
     width: 100%;
-    max-width: 480px;
-    display: flex;
-    flex-direction: column;
+    max-width: 1100px; /* Increased from 480px to fit Desktop */
+    display: grid;     /* We are switching to Grid layout */
     gap: 25px;
-    margin-top: 40px;
+    margin-top: 20px;
+    
+    /* Default Mobile Layout (1 Column) */
+    grid-template-columns: 1fr; 
+    grid-template-areas: 
+        "header"
+        "stats"
+        "timer"
+        "tasks"
+        "quote";
 }
+/* Assign HTML elements to Grid Areas */
+header { grid-area: header; }
+.stats-bar { grid-area: stats; }
+.timer-card { grid-area: timer; }
+.tasks-card { grid-area: tasks; }
+.quote-container { grid-area: quote; }
 
 /* Header & Leveling */
 header { text-align: center; }
@@ -187,3 +202,63 @@ li.completed .check-btn::after { content: '✓'; color: white; font-size: 0.8rem
 @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(0, 184, 148, 0.4); } 70% { box-shadow: 0 0 0 15px rgba(0, 184, 148, 0); } 100% { box-shadow: 0 0 0 0 rgba(0, 184, 148, 0); }}
 .fade-in { animation: fadeIn 1s ease; }
 .zoom-in { animation: zoomIn 0.3s ease; }
+
+/* =========================================
+   DESKTOP RESPONSIVENESS (The Magic Part)
+   ========================================= */
+@media (min-width: 900px) {
+    
+    .container {
+        /* Switch to 2-Column Dashboard Layout */
+        grid-template-columns: 1fr 1.2fr; /* Timer takes less space, Tasks take more */
+        grid-template-rows: auto auto 1fr auto;
+        grid-template-areas: 
+            "header  header"
+            "stats   stats"
+            "timer   tasks"
+            "quote   quote";
+        
+        align-items: start; /* Prevents stretching vertically */
+    }
+
+    /* Make the Timer "Sticky" */
+    /* This keeps the timer visible while you scroll a long task list */
+    .timer-card {
+        position: sticky;
+        top: 20px;
+    }
+
+    /* Adjust the header layout for wide screens */
+    header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: var(--bg-card);
+        padding: 20px 30px;
+        border-radius: 20px;
+        box-shadow: var(--shadow);
+    }
+
+    .level-container {
+        margin-top: 0;
+        min-width: 300px;
+        box-shadow: none; /* Remove shadow since it's inside header now */
+        background: var(--bg-main); /* Slight contrast inside header */
+    }
+
+    header h1 {
+        text-align: left;
+        margin: 0;
+    }
+    
+    header p {
+        text-align: left;
+        margin: 5px 0 0 0;
+    }
+
+    /* Make the Quote less intrusive on desktop */
+    .quote-container {
+        max-width: 600px;
+        margin: 0 auto; /* Center it */
+    }
+}
