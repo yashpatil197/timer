@@ -303,3 +303,21 @@ function applySavedTheme() {
 function updateThemeIcon(theme) {
     elements.themeToggle.textContent = theme === 'dark' ? '☀️' : '🌙';
 }
+
+// ===========================
+//  SPOTIFY INTEGRATION
+// ===========================
+function changeSpotifyPlaylist() {
+    const playlistId = document.getElementById('playlist-select').value;
+    const player = document.getElementById('spotify-player');
+    
+    // Update the iframe source with the new playlist ID
+    player.src = `https://open.spotify.com/embed/playlist/${playlistId}?utm_source=generator&theme=0`;
+    
+    // Optional: Save preference to LocalStorage
+    localStorage.setItem('focusPlaylist', playlistId);
+}
+
+// Load saved playlist on startup (Add this to your DOMContentLoaded logic if you want)
+// You can place this single line inside your existing document.addEventListener('DOMContentLoaded', ...) block:
+// document.getElementById('playlist-select').value = localStorage.getItem('focusPlaylist') || "0vvXsWCC9xrXsKd4FyS8kM";
