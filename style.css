@@ -12,7 +12,6 @@
     --xp-bar: linear-gradient(90deg, #00b894, #0984e3);
 }
 
-/* DARK MODE VARIABLES */
 [data-theme="dark"] {
     --primary: #a29bfe;
     --primary-hover: #8278d9;
@@ -25,7 +24,6 @@
 }
 
 * { box-sizing: border-box; }
-
 body {
     font-family: 'Poppins', sans-serif;
     background-color: var(--bg-main);
@@ -35,273 +33,120 @@ body {
     justify-content: center;
     min-height: 100vh;
     padding: 20px;
-    transition: background 0.3s ease, color 0.3s ease;
+    transition: background 0.3s, color 0.3s;
 }
 
-/* --- UPDATED CONTAINER --- */
+/* --- GRID LAYOUT --- */
 .container {
     width: 100%;
-    max-width: 1100px; /* Increased from 480px to fit Desktop */
-    display: grid;     /* We are switching to Grid layout */
-    gap: 25px;
+    max-width: 1100px;
+    display: grid;
+    gap: 20px;
     margin-top: 20px;
-    
-    /* Default Mobile Layout (1 Column) */
-    grid-template-columns: 1fr; 
+    grid-template-columns: 1fr;
     grid-template-areas: 
         "header"
         "stats"
         "timer"
         "tasks"
+        "analytics"
         "quote";
 }
-/* Assign HTML elements to Grid Areas */
+
+/* Grid Area Assignments */
 header { grid-area: header; }
 .stats-bar { grid-area: stats; }
 .timer-card { grid-area: timer; }
 .tasks-card { grid-area: tasks; }
+.analytics-card { grid-area: analytics; }
 .quote-container { grid-area: quote; }
 
-/* Header & Leveling */
-header { text-align: center; }
-header h1 { margin-bottom: 5px; font-weight: 700; }
-.pro-badge { 
-    background: var(--primary); color: white; 
-    padding: 3px 8px; border-radius: 12px; 
-    font-size: 0.8rem; vertical-align: middle; 
+/* --- COMPONENTS --- */
+.card {
+    background: var(--bg-card);
+    padding: 25px;
+    border-radius: 20px;
+    box-shadow: var(--shadow);
+    transition: transform 0.2s;
 }
 
+header { text-align: center; }
+.pro-badge { background: var(--primary); color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; vertical-align: middle; }
+
+/* Level & Streak */
 .level-container {
     background: var(--bg-card);
     padding: 15px;
     border-radius: 12px;
     box-shadow: var(--shadow);
-    margin-top: 20px;
+    margin-top: 15px;
 }
-.level-info { display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 8px;}
-.xp-bar-background { height: 10px; background: var(--bg-main); border-radius: 5px; overflow: hidden; }
-.xp-bar-fill { height: 100%; background: var(--xp-bar); transition: width 0.5s ease-in-out; }
+.level-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.streak-badge { background: rgba(0,0,0,0.05); padding: 5px 10px; border-radius: 15px; font-size: 0.8rem; font-weight: 700; }
+.streak-badge.active { background: #ffeaa7; color: #d35400; border: 1px solid #fab1a0; }
 
-.stats-bar {
-    text-align: center;
-    background: var(--primary);
-    color: white;
-    padding: 10px;
-    border-radius: 12px;
-    font-weight: 600;
-    box-shadow: var(--shadow);
-}
+.xp-bar-background { height: 8px; background: var(--bg-main); border-radius: 5px; overflow: hidden; }
+.xp-bar-fill { height: 100%; background: var(--xp-bar); transition: width 0.5s; }
+.meta-row { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); margin-top: 5px; }
 
-/* Cards Common Styles */
-.card {
-    background: var(--bg-card);
-    padding: 30px;
-    border-radius: 20px;
-    box-shadow: var(--shadow);
-    text-align: center;
-    transition: transform 0.2s ease, background 0.3s ease;
-}
-.card:hover { transform: translateY(-3px); }
-
-/* Timer Specific */
-.timer-display {
-    font-size: 5rem;
-    font-weight: 700;
-    color: var(--primary);
-    font-variant-numeric: tabular-nums;
-    line-height: 1;
-    margin: 20px 0;
-}
-
-/* Interactive Buttons */
-button {
-    border: none; cursor: pointer; padding: 12px 24px;
-    border-radius: 12px; font-weight: 600; font-family: inherit;
-    transition: all 0.2s ease;
-}
-button:active { transform: scale(0.95); }
-
-.primary-btn { background-color: var(--primary); color: white; font-size: 1.1rem; width: 100%; }
-.primary-btn:hover { background-color: var(--primary-hover); box-shadow: 0 5px 15px rgba(108, 92, 231, 0.3); }
-
-.secondary-btn { background-color: var(--secondary); color: white; font-size: 1.1rem; width: 100%; }
-.tertiary-btn { background-color: var(--bg-main); color: var(--text-muted); }
-
-.timer-controls { display: flex; gap: 10px; margin-bottom: 20px; }
+/* Timer */
+.timer-display { font-size: 4.5rem; font-weight: 700; color: var(--primary); text-align: center; margin: 10px 0; font-variant-numeric: tabular-nums; }
+.timer-controls { display: flex; gap: 10px; margin-bottom: 15px; }
+button { border: none; cursor: pointer; padding: 10px; border-radius: 10px; font-weight: 600; width: 100%; transition: 0.2s; }
+.primary-btn { background: var(--primary); color: white; font-size: 1.1rem; }
+.primary-btn:hover { background: var(--primary-hover); }
 .hidden { display: none; }
 
-/* Mode Switchers */
-.timer-options { display: flex; justify-content: center; gap: 15px; align-items: center;}
-.mode-btn { background: none; color: var(--text-muted); padding: 8px 15px; border-radius: 20px; }
+.timer-options { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
+.mode-btn { background: none; color: var(--text-muted); width: auto; }
 .mode-btn.active { background: var(--primary); color: white; }
-.settings-btn { background: none; font-size: 1.5rem; padding: 5px; color: var(--text-muted); transition: rotate 0.3s ease; }
-.settings-btn:hover { rotate: 90deg; color: var(--primary); }
+.settings-btn { width: auto; background: none; font-size: 1.2rem; }
 
-/* Music Controls */
-.music-controls { margin-top: 25px; padding-top: 20px; border-top: 2px solid var(--bg-main); }
-.music-btn { background: var(--bg-main); color: var(--text-main); display: flex; align-items: center; margin: auto; gap: 10px;}
-.music-btn.playing { background: var(--success); color: white; animation: pulse 2s infinite; }
+/* Spotify */
+.spotify-wrapper { margin-top: 20px; border-top: 2px solid var(--bg-main); padding-top: 15px; }
+.spotify-header { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.9rem; font-weight: 600; }
+#playlist-select { padding: 5px; border-radius: 5px; border: 1px solid var(--bg-main); background: var(--bg-main); color: var(--text-main); }
 
-/* Task List */
-.card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-.input-group { display: flex; gap: 10px; margin-bottom: 25px; }
-#task-input {
-    flex-grow: 1; padding: 15px; border: 2px solid var(--bg-main);
-    border-radius: 12px; background: var(--bg-main); color: var(--text-main); outline: none;
-    font-family: inherit; transition: border-color 0.3s;
-}
-#task-input:focus { border-color: var(--primary); }
-.add-task-btn { background: var(--primary); color: white; font-size: 1.5rem; padding: 0 20px; }
-
+/* Tasks */
+.input-group { display: flex; gap: 10px; margin-bottom: 20px; }
+#task-input { flex-grow: 1; padding: 12px; border: 2px solid var(--bg-main); border-radius: 10px; background: var(--bg-main); color: var(--text-main); }
+.add-task-btn { width: 50px; background: var(--primary); color: white; font-size: 1.5rem; }
 ul { list-style: none; padding: 0; }
-li {
-    background: var(--bg-main); padding: 15px; border-radius: 12px;
-    margin-bottom: 10px; display: flex; justify-content: space-between;
-    align-items: center; cursor: grab; animation: slideIn 0.3s ease;
-}
-li:active { cursor: grabbing; background: var(--bg-card); border: 2px solid var(--primary); }
-li.completed span { text-decoration: line-through; opacity: 0.6; }
-.task-text { flex-grow: 1; margin: 0 15px; }
-.check-btn { width: 25px; height: 25px; border-radius: 50%; border: 2px solid var(--primary); cursor: pointer; display: flex; align-items: center; justify-content: center; }
-li.completed .check-btn { background: var(--primary); }
-li.completed .check-btn::after { content: '✓'; color: white; font-size: 0.8rem; }
-.delete-btn { background: none; color: var(--danger); font-size: 1.2rem; padding: 5px; opacity: 0.7; }
-.delete-btn:hover { opacity: 1; transform: scale(1.1); }
+li { background: var(--bg-main); padding: 12px; border-radius: 10px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; cursor: grab; }
+li.completed span { text-decoration: line-through; opacity: 0.5; }
+.delete-btn { background: none; color: var(--danger); width: auto; }
 
-/* Theme Toggle & Quote */
-#theme-toggle {
-    position: fixed; top: 20px; right: 20px; background: var(--bg-card);
-    font-size: 1.5rem; padding: 10px; border-radius: 50%; box-shadow: var(--shadow); z-index: 10;
-}
-.quote-container {
-    text-align: center; margin-top: 30px; padding: 20px;
-    background: var(--bg-card); border-radius: 12px; font-style: italic; color: var(--text-muted);
-}
+/* Chart */
+.chart-box { position: relative; height: 200px; width: 100%; }
+
+/* Quote & Theme */
+.quote-container { text-align: center; padding: 15px; font-style: italic; color: var(--text-muted); background: var(--bg-card); border-radius: 12px; }
+#theme-toggle { position: fixed; top: 20px; right: 20px; width: 50px; background: var(--bg-card); box-shadow: var(--shadow); z-index: 100; border-radius: 50%; }
 
 /* Modal */
-.modal {
-    display: none; position: fixed; z-index: 100; left: 0; top: 0;
-    width: 100%; height: 100%; background-color: rgba(0,0,0,0.6);
-    backdrop-filter: blur(5px); align-items: center; justify-content: center;
-}
-.modal-content {
-    background-color: var(--bg-card); padding: 30px; width: 90%;
-    max-width: 400px; border-radius: 20px; box-shadow: var(--shadow);
-}
-.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-.close { font-size: 28px; cursor: pointer; color: var(--text-muted); }
-.setting-row { margin-bottom: 20px; text-align: left; }
-.setting-row label { display: block; margin-bottom: 8px; font-weight: 600; }
-.setting-row input { width: 100%; padding: 12px; border-radius: 8px; border: 2px solid var(--bg-main); background: var(--bg-main); color: var(--text-main); }
-.save-btn { background: var(--primary); color: white; width: 100%; padding: 15px; }
+.modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); align-items: center; justify-content: center; z-index: 200; backdrop-filter: blur(5px); }
+.modal-content { background: var(--bg-card); padding: 25px; border-radius: 20px; width: 90%; max-width: 350px; }
+.setting-row { margin-bottom: 15px; }
+.setting-row input { width: 100%; padding: 8px; margin-top: 5px; background: var(--bg-main); border: 1px solid var(--bg-main); color: var(--text-main); }
+.close { float: right; cursor: pointer; font-size: 1.5rem; }
+.save-btn { background: var(--primary); color: white; margin-top: 10px; }
 
-/* Animations */
-@keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); }}
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; }}
-@keyframes zoomIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); }}
-@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(0, 184, 148, 0.4); } 70% { box-shadow: 0 0 0 15px rgba(0, 184, 148, 0); } 100% { box-shadow: 0 0 0 0 rgba(0, 184, 148, 0); }}
-.fade-in { animation: fadeIn 1s ease; }
-.zoom-in { animation: zoomIn 0.3s ease; }
-
-/* =========================================
-   DESKTOP RESPONSIVENESS (The Magic Part)
-   ========================================= */
+/* --- DESKTOP VIEW --- */
 @media (min-width: 900px) {
-    
     .container {
-        /* Switch to 2-Column Dashboard Layout */
-        grid-template-columns: 1fr 1.2fr; /* Timer takes less space, Tasks take more */
+        grid-template-columns: 1fr 1.5fr;
         grid-template-rows: auto auto 1fr auto;
         grid-template-areas: 
-            "header  header"
-            "stats   stats"
-            "timer   tasks"
-            "quote   quote";
-        
-        align-items: start; /* Prevents stretching vertically */
+            "header header"
+            "stats stats"
+            "timer tasks"
+            "timer analytics"
+            "quote quote";
+        align-items: start;
     }
-
-    /* Make the Timer "Sticky" */
-    /* This keeps the timer visible while you scroll a long task list */
-    .timer-card {
-        position: sticky;
-        top: 20px;
-    }
-
-    /* Adjust the header layout for wide screens */
-    header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        background: var(--bg-card);
-        padding: 20px 30px;
-        border-radius: 20px;
-        box-shadow: var(--shadow);
-    }
-
-    .level-container {
-        margin-top: 0;
-        min-width: 300px;
-        box-shadow: none; /* Remove shadow since it's inside header now */
-        background: var(--bg-main); /* Slight contrast inside header */
-    }
-
-    header h1 {
-        text-align: left;
-        margin: 0;
-    }
-    
-    header p {
-        text-align: left;
-        margin: 5px 0 0 0;
-    }
-
-    /* Make the Quote less intrusive on desktop */
-    .quote-container {
-        max-width: 600px;
-        margin: 0 auto; /* Center it */
-    }
-}
-
-/* --- SPOTIFY PLAYER STYLES --- */
-.spotify-wrapper {
-    margin-top: 25px;
-    padding-top: 20px;
-    border-top: 2px solid var(--bg-main);
-    width: 100%;
-}
-
-.spotify-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
-}
-
-.spotify-header label {
-    font-weight: 600;
-    color: var(--text-muted);
-}
-
-/* Custom Dropdown Styling */
-#playlist-select {
-    padding: 8px 12px;
-    border-radius: 8px;
-    border: 2px solid var(--bg-main);
-    background-color: var(--bg-main);
-    color: var(--text-main);
-    font-family: inherit;
-    font-weight: 600;
-    cursor: pointer;
-    outline: none;
-    transition: border-color 0.3s;
-}
-
-#playlist-select:focus {
-    border-color: var(--primary);
-}
-
-/* Dark mode adjustment for the iframe background */
-[data-theme="dark"] .spotify-wrapper iframe {
-    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    .timer-card { position: sticky; top: 20px; }
+    header { display: flex; justify-content: space-between; align-items: center; background: var(--bg-card); padding: 20px; border-radius: 20px; box-shadow: var(--shadow); }
+    .level-container { margin-top: 0; min-width: 300px; box-shadow: none; background: var(--bg-main); }
+    header h1 { text-align: left; margin: 0; }
+    header p { text-align: left; margin: 0; }
 }
